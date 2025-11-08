@@ -130,7 +130,7 @@
         <h1>Spelling Bee Practice</h1>
 
         <div id="setup-area">
-            <p>Upload your word list (a .txt file with one word per line).</p>
+            <p>Upload a new list (optional):</p>
             <span id="list-status"></span>
             <input type="file" id="file-input" accept=".txt">
             <button id="start-btn" disabled>Start Practice</button>
@@ -155,6 +155,30 @@
     </div>
 
     <script>
+        // --- Default Word List ---
+        const defaultWords = [
+            "absence", "advertise", "cautious", "colleague", "courageous", "disaster", "enormous",
+            "exceed", "fierce", "govern", "grateful", "habitat", "identify", "jealous", "laboratory",
+            "magnify", "nuisance", "opportunity", "ordinary", "permanent", "physical", "principal",
+            "progress", "recognize", "rhythm", "science", "similar", "sincere", "souvenir", "success",
+            "system", "texture", "theory", "tornado", "triumph", "typical", "urgency", "unique",
+            "variety", "visible", "abandon", "awkward", "campaign", "celebrate", "concern", "distress",
+            "embarrass", "guilty", "heighten", "inquire", "acquire", "allotted", "appetite", "bureau",
+            "camouflage", "cemetery", "chimney", "conscious", "controversy", "courteous", "descendant",
+            "discipline", "fascinate", "foreign", "glacier", "gourmet", "guidance", "handkerchief",
+            "hierarchy", "ignorant", "jeopardy", "knapsack", "leopard", "maneuver", "miniature",
+            "miscellaneous", "mosquito", "naughty", "negotiate", "palette", "parliament", "peculiar",
+            "pneumonia", "prejudice", "privilege", "psychology", "queue", "recede", "reservoir",
+            "sarcasm", "siege", "sophomore", "sovereign", "subtle", "suspicion", "tariff", "thorough",
+            "traitor", "unanimous", "vengeance", "weird", "yacht", "zealous", "adolescent", "architect",
+            "beneficial", "chrysanthemum", "committee", "congratulate", "deteriorate", "eligible",
+            "exhilaration", "fascinating", "guerrilla", "handwriting", "humorous", "hypothesis",
+            "inconvenience", "license", "mischievous", "nurture", "occasionally", "perseverance",
+            "pharaoh", "propaganda", "recommend", "rehearsal", "soliloquy", "specialize", "sympathy",
+            "technical", "tyranny", "vaccine", "vegetation", "wreath", "yawn", "zero", "announcement",
+            "existence", "fascinated"
+        ]; // Note: "deteriprate" from your list was corrected to "deteriorate"
+
         // Get elements from the DOM
         const fileInput = document.getElementById('file-input');
         const startBtn = document.getElementById('start-btn');
@@ -185,7 +209,6 @@
 
         // --- 0. Load on Startup ---
         
-        // Check for words in localStorage when the page loads
         document.addEventListener('DOMContentLoaded', loadFromStorage);
 
         function loadFromStorage() {
@@ -195,14 +218,23 @@
                     const parsedWords = JSON.parse(storedWords);
                     if (parsedWords && parsedWords.length > 0) {
                         words = parsedWords;
-                        startBtn.disabled = false;
                         listStatus.textContent = `Loaded ${words.length} words from memory.`;
                     }
                 } catch (e) {
                     console.error("Could not parse stored word list", e);
                     localStorage.removeItem('spellingWordList');
+                    loadDefaultList(); // Fallback to default
                 }
+            } else {
+                // No list in storage, so load the default
+                loadDefaultList();
             }
+            startBtn.disabled = false;
+        }
+
+        function loadDefaultList() {
+            words = [...defaultWords]; // Copy the default list
+            listStatus.textContent = `Loaded ${words.length} default words.`;
         }
 
         // --- 1. File Handling ---
@@ -221,8 +253,7 @@
                                 .filter(word => word.length > 0);
                 
                 if (newWords.length > 0) {
-                    shuffle(newWords); // Randomize the new list
-                    words = newWords;
+                    words = newWords; // Set as the current list
                     
                     // Store the new list in localStorage
                     localStorage.setItem('spellingWordList', JSON.stringify(words));
@@ -231,7 +262,6 @@
                     startBtn.disabled = false;
                 } else {
                     alert("File is empty or not formatted correctly.");
-                    startBtn.disabled = true;
                 }
             };
             reader.readAsText(file);
@@ -256,18 +286,15 @@
             practiceArea.style.display = 'block';
             endScreen.style.display = 'none';
             
-            // Show practice elements
             spellingInput.style.display = 'block';
             playBtn.style.display = 'inline-block';
             tallyArea.style.display = 'flex';
 
-            // Reset scores
             currentIndex = 0;
             correctCount = 0;
             incorrectCount = 0;
             
-            // Re-shuffle the list every time practice starts
-            shuffle(words);
+            shuffle(words); // Re-shuffle the list every time
             
             loadWord();
         }
@@ -278,7 +305,6 @@
                 return;
             }
 
-            // Reset for the new word
             currentState = 'check';
             spellingInput.value = '';
             spellingInput.disabled = false;
@@ -298,12 +324,10 @@
         }
 
         function showEndScreen() {
-            // Hide practice elements
             spellingInput.style.display = 'none';
             playBtn.style.display = 'none';
             tallyArea.style.display = 'none';
 
-            // Show final feedback and restart button
             feedback.innerHTML = `🎉 Practice Complete! <br> You got <strong>${correctCount} out of ${words.length}</strong> correct.`;
             feedback.style.color = "#4a4a4a";
             endScreen.style.display = 'block';
@@ -356,7 +380,7 @@
             }
 
             currentState = 'next';
-            updateTally(); // Update counts immediately
+            updateTally();
         }
 
         // --- 5. Restart Logic ---
@@ -365,7 +389,8 @@
             practiceArea.style.display = 'none';
             endScreen.style.display = 'none';
             setupArea.style.display = 'block';
-            // Update status message in case list was loaded from memory
+            
+            // Re-run the load logic to show the correct status
             loadFromStorage();
         });
 

@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling Bee Practice</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: grid;
+            place-items: center;
+            min-height: 90vh;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            width: 90%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #4a4a4a;
+            margin-top: 0;
+        }
+        p {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            margin-bottom: 0.5rem;
+        }
+        #list-status {
+            font-size: 0.9rem;
+            color: #007aff;
+            display: block;
+            min-height: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        #file-input {
+            margin: 0.5rem 0;
+            display: block;
+            width: 100%;
+        }
+        button {
+            background-color: #007aff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        button:not(:disabled):hover {
+            background-color: #0056b3;
+        }
+        #practice-area {
+            display: none; /* Hidden by default */
+            margin-top: 1rem;
+        }
+        #tally-area {
+            display: flex;
+            justify-content: space-around;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 1.5rem;
+        }
+        #tally-area span {
+            width: 33%;
+        }
+        #tally-correct { color: green; }
+        #tally-incorrect { color: red; }
+        #tally-remaining { color: #555; }
+        
+        #spelling-input {
+            width: 80%;
+            padding: 12px;
+            font-size: 1.2rem;
+            margin: 1rem 0;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            text-align: center;
+        }
+        #spelling-input:focus {
+            outline: none;
+            border-color: #007aff;
+        }
+        #feedback {
+            font-size: 1.2rem;
+            font-weight: bold;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.4;
+        }
+        #play-btn {
+            margin-top: 10px;
+            background-color: #5856d6;
+        }
+        #play-btn:hover {
+            background-color: #3a389c;
+        }
+
+        #end-screen {
+            display: none; /* Hidden by default */
+            margin-top: 1.5rem;
+        }
+        #restart-btn {
+            background-color: #ff9500;
+        }
+        #restart-btn:hover {
+            background-color: #c97600;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Spelling Bee Practice</h1>
+
+        <div id="setup-area">
+            <p>Upload your word list (a .txt file with one word per line).</p>
+            <span id="list-status"></span>
+            <input type="file" id="file-input" accept=".txt">
+            <button id="start-btn" disabled>Start Practice</button>
+        </div>
+
+        <div id="practice-area">
+            <div id="feedback"></div>
+            <input type="text" id="spelling-input" placeholder="Type the word..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <br>
+            <button id="play-btn">🔊 Replay Word</button>
+
+            <div id="tally-area">
+                <span id="tally-correct">Correct: 0</span>
+                <span id="tally-incorrect">Incorrect: 0</span>
+                <span id="tally-remaining">Remaining: 0</span>
+            </div>
+
+            <div id="end-screen">
+                <button id="restart-btn">Practice Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get elements from the DOM
+        const fileInput = document.getElementById('file-input');
+        const startBtn = document.getElementById('start-btn');
+        const setupArea = document.getElementById('setup-area');
+        const practiceArea = document.getElementById('practice-area');
+        const spellingInput = document.getElementById('spelling-input');
+        const feedback = document.getElementById('feedback');
+        const playBtn = document.getElementById('play-btn');
+        const listStatus = document.getElementById('list-status');
+        
+        // Tally elements
+        const tallyArea = document.getElementById('tally-area');
+        const tallyCorrect = document.getElementById('tally-correct');
+        const tallyIncorrect = document.getElementById('tally-incorrect');
+        const tallyRemaining = document.getElementById('tally-remaining');
+
+        // End screen elements
+        const endScreen = document.getElementById('end-screen');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // App state
+        let words = [];
+        let currentIndex = 0;
+        let currentState = 'check'; // 'check' or 'next'
+        let correctCount = 0;
+        let incorrectCount = 0;
+        const synth = window.speechSynthesis;
+
+        // --- 0. Load on Startup ---
+        
+        // Check for words in localStorage when the page loads
+        document.addEventListener('DOMContentLoaded', loadFromStorage);
+
+        function loadFromStorage() {
+            const storedWords = localStorage.getItem('spellingWordList');
+            if (storedWords) {
+                try {
+                    const parsedWords = JSON.parse(storedWords);
+                    if (parsedWords && parsedWords.length > 0) {
+                        words = parsedWords;
+                        startBtn.disabled = false;
+                        listStatus.textContent = `Loaded ${words.length} words from memory.`;
+                    }
+                } catch (e) {
+                    console.error("Could not parse stored word list", e);
+                    localStorage.removeItem('spellingWordList');
+                }
+            }
+        }
+
+        // --- 1. File Handling ---
+        
+        fileInput.addEventListener('change', handleFileSelect);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                let newWords = text.split('\n')
+                                .map(word => word.trim())
+                                .filter(word => word.length > 0);
+                
+                if (newWords.length > 0) {
+                    shuffle(newWords); // Randomize the new list
+                    words = newWords;
+                    
+                    // Store the new list in localStorage
+                    localStorage.setItem('spellingWordList', JSON.stringify(words));
+                    
+                    listStatus.textContent = `Loaded ${words.length} new words.`;
+                    startBtn.disabled = false;
+                } else {
+                    alert("File is empty or not formatted correctly.");
+                    startBtn.disabled = true;
+                }
+            };
+            reader.readAsText(file);
+        }
+        
+        function shuffle(array) {
+            let currentIndex = array.length, randomIndex;
+            while (currentIndex != 0) {
+                randomIndex = Math.floor(Math.random() * currentIndex);
+                currentIndex--;
+                [array[currentIndex], array[randomIndex]] = [
+                    array[randomIndex], array[currentIndex]];
+            }
+        }
+
+        // --- 2. Practice Logic ---
+
+        startBtn.addEventListener('click', startPractice);
+
+        function startPractice() {
+            setupArea.style.display = 'none';
+            practiceArea.style.display = 'block';
+            endScreen.style.display = 'none';
+            
+            // Show practice elements
+            spellingInput.style.display = 'block';
+            playBtn.style.display = 'inline-block';
+            tallyArea.style.display = 'flex';
+
+            // Reset scores
+            currentIndex = 0;
+            correctCount = 0;
+            incorrectCount = 0;
+            
+            // Re-shuffle the list every time practice starts
+            shuffle(words);
+            
+            loadWord();
+        }
+
+        function loadWord() {
+            if (currentIndex >= words.length) {
+                showEndScreen();
+                return;
+            }
+
+            // Reset for the new word
+            currentState = 'check';
+            spellingInput.value = '';
+            spellingInput.disabled = false;
+            feedback.innerHTML = `Word ${currentIndex + 1} of ${words.length}`;
+            feedback.style.color = "#333";
+            spellingInput.focus();
+
+            updateTally();
+            speakWord(words[currentIndex]);
+        }
+
+        function updateTally() {
+            const remaining = words.length - currentIndex;
+            tallyCorrect.textContent = `Correct: ${correctCount}`;
+            tallyIncorrect.textContent = `Incorrect: ${incorrectCount}`;
+            tallyRemaining.textContent = `Remaining: ${remaining}`;
+        }
+
+        function showEndScreen() {
+            // Hide practice elements
+            spellingInput.style.display = 'none';
+            playBtn.style.display = 'none';
+            tallyArea.style.display = 'none';
+
+            // Show final feedback and restart button
+            feedback.innerHTML = `🎉 Practice Complete! <br> You got <strong>${correctCount} out of ${words.length}</strong> correct.`;
+            feedback.style.color = "#4a4a4a";
+            endScreen.style.display = 'block';
+        }
+
+        // --- 3. Text-to-Speech (TTS) ---
+
+        function speakWord(text) {
+            if (synth.speaking) synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            synth.speak(utterance);
+        }
+
+        playBtn.addEventListener('click', () => {
+            if (currentIndex < words.length) {
+                speakWord(words[currentIndex]);
+            }
+        });
+
+        // --- 4. Input Handling (The "Enter" key) ---
+
+        spellingInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault(); 
+
+                if (currentState === 'check') {
+                    if (spellingInput.value.trim().length > 0) {
+                        checkAnswer();
+                    }
+                } else if (currentState === 'next') {
+                    currentIndex++;
+                    loadWord();
+                }
+            }
+        });
+
+        function checkAnswer() {
+            const userAnswer = spellingInput.value.trim();
+            const correctAnswer = words[currentIndex];
+
+            if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
+                feedback.innerHTML = `✅ Correct! <br>Press Enter to continue.`;
+                feedback.style.color = "green";
+                correctCount++;
+            } else {
+                feedback.innerHTML = `❌ Wrong. The word was: <strong>${correctAnswer}</strong> <br>Press Enter to continue.`;
+                feedback.style.color = "red";
+                incorrectCount++;
+            }
+
+            currentState = 'next';
+            updateTally(); // Update counts immediately
+        }
+
+        // --- 5. Restart Logic ---
+        
+        restartBtn.addEventListener('click', () => {
+            practiceArea.style.display = 'none';
+            endScreen.style.display = 'none';
+            setupArea.style.display = 'block';
+            // Update status message in case list was loaded from memory
+            loadFromStorage();
+        });
+
+    </script>
+</body>
+</html>

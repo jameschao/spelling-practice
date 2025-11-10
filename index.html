@@ -141,6 +141,7 @@
             <div id="feedback"></div>
             <input type="text" id="spelling-input" placeholder="Type the word..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <br>
+            <button id="submit-btn">Submit</button>
             <button id="play-btn">🔊 Replay Word</button>
 
             <div id="tally-area">
@@ -195,6 +196,7 @@
         const tallyRemaining = document.getElementById('tally-remaining');
         const endScreen = document.getElementById('end-screen');
         const restartBtn = document.getElementById('restart-btn');
+        const submitBtn = document.getElementById('submit-btn');
 
         // App state
         let words = [];
@@ -290,6 +292,7 @@
             
             spellingInput.style.display = 'block';
             playBtn.style.display = 'inline-block';
+            submitBtn.style.display = 'inline-block';
             tallyArea.style.display = 'flex';
 
             currentIndex = 0;
@@ -316,6 +319,7 @@
 
             updateTally();
             speakWord(words[currentIndex]);
+            submitBtn.textContent = 'Submit';
         }
 
         function updateTally() {
@@ -328,6 +332,7 @@
         function showEndScreen() {
             spellingInput.style.display = 'none';
             playBtn.style.display = 'none';
+            submitBtn.style.display = 'none';
             tallyArea.style.display = 'none';
 
             feedback.innerHTML = `🎉 Practice Complete! <br> You got <strong>${correctCount} out of ${words.length}</strong> correct.`;
@@ -367,6 +372,17 @@
             }
         });
 
+        submitBtn.addEventListener('click', () => {
+            if (currentState === 'check') {
+                if (spellingInput.value.trim().length > 0) {
+                    checkAnswer();
+                }
+            } else if (currentState === 'next') {
+                currentIndex++;
+                loadWord();
+            }
+        });
+
         function checkAnswer() {
             const userAnswer = spellingInput.value.trim();
             const correctAnswer = words[currentIndex];
@@ -383,6 +399,7 @@
 
             currentState = 'next';
             updateTally();
+            submitBtn.textContent = 'Next word';
         }
 
         // --- 5. Restart Logic ---

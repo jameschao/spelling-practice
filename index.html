@@ -201,7 +201,6 @@
         // App state
         let words = [];
         let currentIndex = 0;
-        let currentState = 'check'; // 'check' or 'next'
         let correctCount = 0;
         let incorrectCount = 0;
         const synth = window.speechSynthesis;
@@ -310,16 +309,15 @@
                 return;
             }
 
-            currentState = 'check';
             spellingInput.value = '';
             spellingInput.disabled = false;
+            submitBtn.disabled = false;
             feedback.innerHTML = `Word ${currentIndex + 1} of ${words.length}`;
             feedback.style.color = "#333";
             spellingInput.focus();
 
             updateTally();
             speakWord(words[currentIndex]);
-            submitBtn.textContent = 'Submit';
         }
 
         function updateTally() {
@@ -359,27 +357,16 @@
 
         spellingInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter') {
-                e.preventDefault(); 
-
-                if (currentState === 'check') {
-                    if (spellingInput.value.trim().length > 0) {
-                        checkAnswer();
-                    }
-                } else if (currentState === 'next') {
-                    currentIndex++;
-                    loadWord();
+                e.preventDefault();
+                if (spellingInput.value.trim().length > 0) {
+                    checkAnswer();
                 }
             }
         });
 
         submitBtn.addEventListener('click', () => {
-            if (currentState === 'check') {
-                if (spellingInput.value.trim().length > 0) {
-                    checkAnswer();
-                }
-            } else if (currentState === 'next') {
-                currentIndex++;
-                loadWord();
+            if (spellingInput.value.trim().length > 0) {
+                checkAnswer();
             }
         });
 
@@ -387,19 +374,25 @@
             const userAnswer = spellingInput.value.trim();
             const correctAnswer = words[currentIndex];
 
+            // Disable input while showing feedback
+            spellingInput.disabled = true;
+            submitBtn.disabled = true;
+
             if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-                feedback.innerHTML = `✅ Correct! <br>Press Enter to continue.`;
+                feedback.innerHTML = `✅ Correct!`;
                 feedback.style.color = "green";
                 correctCount++;
             } else {
-                feedback.innerHTML = `<div>❌ Wrong.</div><div>The word was: <strong>${correctAnswer}</strong></div><div>Press Enter to continue.</div>`;
+                feedback.innerHTML = `❌ Wrong. The word was: <strong>${correctAnswer}</strong>`;
                 feedback.style.color = "red";
                 incorrectCount++;
             }
 
-            currentState = 'next';
+            currentIndex++;
             updateTally();
-            submitBtn.textContent = 'Next word';
+
+            // Wait a moment, then load the next word
+            setTimeout(loadWord, 1200);
         }
 
         // --- 5. Restart Logic ---

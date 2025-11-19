@@ -151,7 +151,13 @@
             </div>
 
             <div id="end-screen">
-                <button id="restart-btn">Practice Again</button>
+                <div style="display: flex; justify-content: center; gap: 10px;">
+                    <button id="practice-incorrect-btn" style="display: none; background-color: #ff9500;">Practice Incorrect Words</button>
+                    <button id="restart-full-list-btn">Practice Full List Again</button>
+                </div>
+                <div style="margin-top: 10px;">
+                    <button id="restart-btn">Main Menu</button>
+                </div>
             </div>
         </div>
     </div>
@@ -197,13 +203,17 @@
         const endScreen = document.getElementById('end-screen');
         const restartBtn = document.getElementById('restart-btn');
         const submitBtn = document.getElementById('submit-btn');
+        const practiceIncorrectBtn = document.getElementById('practice-incorrect-btn');
+        const restartFullListBtn = document.getElementById('restart-full-list-btn');
 
         // App state
-        let words = [];
+        var words = [];
+        let originalWords = [];
         let currentIndex = 0;
         let currentState = 'check'; // 'check' or 'next'
         let correctCount = 0;
         let incorrectCount = 0;
+        let incorrectWords = [];
         const synth = window.speechSynthesis;
 
         // --- 0. Load on Startup ---
@@ -283,7 +293,10 @@
 
         // --- 2. Practice Logic ---
 
-        startBtn.addEventListener('click', startPractice);
+        startBtn.addEventListener('click', () => {
+            originalWords = [...words]; // This is the definitive original list
+            startPractice();
+        });
 
         function startPractice() {
             setupArea.style.display = 'none';
@@ -298,6 +311,7 @@
             currentIndex = 0;
             correctCount = 0;
             incorrectCount = 0;
+            incorrectWords = [];
             
             shuffle(words); // Re-shuffle the list every time
             
@@ -338,6 +352,12 @@
             feedback.innerHTML = `🎉 Practice Complete! <br> You got <strong>${correctCount} out of ${words.length}</strong> correct.`;
             feedback.style.color = "#4a4a4a";
             endScreen.style.display = 'block';
+
+            if (incorrectWords.length > 0) {
+                practiceIncorrectBtn.style.display = 'block';
+            } else {
+                practiceIncorrectBtn.style.display = 'none';
+            }
         }
 
         // --- 3. Text-to-Speech (TTS) ---
@@ -395,6 +415,7 @@
                 feedback.innerHTML = `<div>❌ Wrong.</div><div>The word was: <strong>${correctAnswer}</strong></div><div>Press Enter to continue.</div>`;
                 feedback.style.color = "red";
                 incorrectCount++;
+                incorrectWords.push(correctAnswer);
             }
 
             currentState = 'next';
@@ -412,6 +433,18 @@
             // Re-run the load logic to show the correct status
             loadFromStorage();
         });
+
+        restartFullListBtn.addEventListener('click', () => {
+            words = [...originalWords]; // Restore the full list before practicing
+            startPractice();
+        });
+
+        function startIncorrectPractice() {
+            words = [...incorrectWords]; // Use the incorrect words for the new round
+            startPractice();
+        }
+
+        practiceIncorrectBtn.addEventListener('click', startIncorrectPractice);
 
     </script>
 </body>

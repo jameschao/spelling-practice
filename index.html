@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +15,7 @@
             color: #333;
             text-align: center;
         }
+
         .container {
             background: #ffffff;
             padding: 2rem;
@@ -22,15 +24,18 @@
             width: 90%;
             max-width: 500px;
         }
+
         h1 {
             color: #4a4a4a;
             margin-top: 0;
         }
+
         p {
             font-size: 1.1rem;
             line-height: 1.5;
             margin-bottom: 0.5rem;
         }
+
         #list-status {
             font-size: 0.9rem;
             color: #007aff;
@@ -38,11 +43,13 @@
             min-height: 1.2rem;
             margin-bottom: 1rem;
         }
+
         #file-input {
             margin: 0.5rem 0;
             display: block;
             width: 100%;
         }
+
         button {
             background-color: #007aff;
             color: white;
@@ -54,17 +61,22 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
+
         button:disabled {
             background-color: #ccc;
             cursor: not-allowed;
         }
+
         button:not(:disabled):hover {
             background-color: #0056b3;
         }
+
         #practice-area {
-            display: none; /* Hidden by default */
+            display: none;
+            /* Hidden by default */
             margin-top: 1rem;
         }
+
         #tally-area {
             display: flex;
             justify-content: space-around;
@@ -75,13 +87,23 @@
             border-radius: 8px;
             margin-top: 1.5rem;
         }
+
         #tally-area span {
             width: 33%;
         }
-        #tally-correct { color: green; }
-        #tally-incorrect { color: red; }
-        #tally-remaining { color: #555; }
-        
+
+        #tally-correct {
+            color: green;
+        }
+
+        #tally-incorrect {
+            color: red;
+        }
+
+        #tally-remaining {
+            color: #555;
+        }
+
         #spelling-input {
             width: 80%;
             padding: 12px;
@@ -91,40 +113,57 @@
             border: 2px solid #ddd;
             text-align: center;
         }
+
         #spelling-input:focus {
             outline: none;
             border-color: #007aff;
         }
+
+        #previous-word-feedback {
+            font-size: 1rem;
+            font-weight: 500;
+            min-height: 1.5rem;
+            /* Reserve space */
+            margin-bottom: 0.5rem;
+        }
+
         #feedback {
             font-size: 1.2rem;
             font-weight: bold;
-            min-height: 80px;
+            min-height: 40px;
+            /* Reduced from 80px */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             line-height: 1.4;
         }
+
         #play-btn {
             margin-top: 10px;
             background-color: #5856d6;
         }
+
         #play-btn:hover {
             background-color: #3a389c;
         }
 
         #end-screen {
-            display: none; /* Hidden by default */
+            display: none;
+            /* Hidden by default */
             margin-top: 1.5rem;
         }
+
         #restart-btn {
             background-color: #ff9500;
         }
+
         #restart-btn:hover {
             background-color: #c97600;
         }
     </style>
 </head>
+
 <body>
 
     <div class="container">
@@ -138,8 +177,10 @@
         </div>
 
         <div id="practice-area">
+            <div id="previous-word-feedback"></div>
             <div id="feedback"></div>
-            <input type="text" id="spelling-input" placeholder="Type the word..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <input type="text" id="spelling-input" placeholder="Type the word..." autocomplete="off" autocorrect="off"
+                autocapitalize="off" spellcheck="false">
             <br>
             <button id="submit-btn">Submit</button>
             <button id="play-btn">🔊 Replay Word</button>
@@ -152,7 +193,8 @@
 
             <div id="end-screen">
                 <div style="display: flex; justify-content: center; gap: 10px;">
-                    <button id="practice-incorrect-btn" style="display: none; background-color: #ff9500;">Practice Incorrect Words</button>
+                    <button id="practice-incorrect-btn" style="display: none; background-color: #ff9500;">Practice
+                        Incorrect Words</button>
                     <button id="restart-full-list-btn">Practice Full List Again</button>
                 </div>
                 <div style="margin-top: 10px;">
@@ -194,6 +236,7 @@
         const practiceArea = document.getElementById('practice-area');
         const spellingInput = document.getElementById('spelling-input');
         const feedback = document.getElementById('feedback');
+        const previousWordFeedback = document.getElementById('previous-word-feedback');
         const playBtn = document.getElementById('play-btn');
         const listStatus = document.getElementById('list-status');
         const tallyArea = document.getElementById('tally-area');
@@ -210,20 +253,19 @@
         var words = [];
         let originalWords = [];
         let currentIndex = 0;
-        let currentState = 'check'; // 'check' or 'next'
         let correctCount = 0;
         let incorrectCount = 0;
         let incorrectWords = [];
         const synth = window.speechSynthesis;
 
         // --- 0. Load on Startup ---
-        
+
         document.addEventListener('DOMContentLoaded', loadFromStorage);
 
         function loadFromStorage() {
             let loadedFromStorage = false;
             const storedWords = localStorage.getItem('spellingWordList');
-            
+
             if (storedWords) {
                 try {
                     const parsedWords = JSON.parse(storedWords);
@@ -243,7 +285,7 @@
             if (!loadedFromStorage) {
                 loadDefaultList();
             }
-            
+
             startBtn.disabled = false;
         }
 
@@ -255,7 +297,7 @@
         }
 
         // --- 1. File Handling ---
-        
+
         fileInput.addEventListener('change', handleFileSelect);
 
         function handleFileSelect(event) {
@@ -263,12 +305,12 @@
             if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 const text = e.target.result;
                 let newWords = text.split('\n')
-                                .map(word => word.trim())
-                                .filter(word => word.length > 0);
-                
+                    .map(word => word.trim())
+                    .filter(word => word.length > 0);
+
                 if (newWords.length > 0) {
                     words = newWords; // Set as the current list
                     localStorage.setItem('spellingWordList', JSON.stringify(words));
@@ -280,7 +322,7 @@
             };
             reader.readAsText(file);
         }
-        
+
         function shuffle(array) {
             let currentIndex = array.length, randomIndex;
             while (currentIndex != 0) {
@@ -302,7 +344,7 @@
             setupArea.style.display = 'none';
             practiceArea.style.display = 'block';
             endScreen.style.display = 'none';
-            
+
             spellingInput.style.display = 'block';
             playBtn.style.display = 'inline-block';
             submitBtn.style.display = 'inline-block';
@@ -312,9 +354,10 @@
             correctCount = 0;
             incorrectCount = 0;
             incorrectWords = [];
-            
+            previousWordFeedback.innerHTML = ''; // Clear previous feedback
+
             shuffle(words); // Re-shuffle the list every time
-            
+
             loadWord();
         }
 
@@ -324,16 +367,15 @@
                 return;
             }
 
-            currentState = 'check';
             spellingInput.value = '';
             spellingInput.disabled = false;
+            submitBtn.disabled = false;
             feedback.innerHTML = `Word ${currentIndex + 1} of ${words.length}`;
             feedback.style.color = "#333";
             spellingInput.focus();
 
             updateTally();
             speakWord(words[currentIndex]);
-            submitBtn.textContent = 'Submit';
         }
 
         function updateTally() {
@@ -377,29 +419,18 @@
 
         // --- 4. Input Handling (The "Enter" key) ---
 
-        spellingInput.addEventListener('keydown', function(e) {
+        spellingInput.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') {
-                e.preventDefault(); 
-
-                if (currentState === 'check') {
-                    if (spellingInput.value.trim().length > 0) {
-                        checkAnswer();
-                    }
-                } else if (currentState === 'next') {
-                    currentIndex++;
-                    loadWord();
+                e.preventDefault();
+                if (spellingInput.value.trim().length > 0) {
+                    checkAnswer();
                 }
             }
         });
 
         submitBtn.addEventListener('click', () => {
-            if (currentState === 'check') {
-                if (spellingInput.value.trim().length > 0) {
-                    checkAnswer();
-                }
-            } else if (currentState === 'next') {
-                currentIndex++;
-                loadWord();
+            if (spellingInput.value.trim().length > 0) {
+                checkAnswer();
             }
         });
 
@@ -407,29 +438,35 @@
             const userAnswer = spellingInput.value.trim();
             const correctAnswer = words[currentIndex];
 
+            // Disable input while showing feedback
+            spellingInput.disabled = true;
+            submitBtn.disabled = true;
+
             if (userAnswer.toLowerCase() === correctAnswer.toLowerCase()) {
-                feedback.innerHTML = `✅ Correct! <br>Press Enter to continue.`;
-                feedback.style.color = "green";
+                previousWordFeedback.innerHTML = `✅ Correct! The word was: <strong>${correctAnswer}</strong>`;
+                previousWordFeedback.style.color = "green";
                 correctCount++;
             } else {
-                feedback.innerHTML = `<div>❌ Wrong.</div><div>The word was: <strong>${correctAnswer}</strong></div><div>Press Enter to continue.</div>`;
-                feedback.style.color = "red";
+                previousWordFeedback.innerHTML = `❌ Wrong. You wrote: <strong>${userAnswer}</strong>. The word was: <strong>${correctAnswer}</strong>`;
+                previousWordFeedback.style.color = "red";
                 incorrectCount++;
                 incorrectWords.push(correctAnswer);
             }
 
-            currentState = 'next';
+            currentIndex++;
             updateTally();
-            submitBtn.textContent = 'Next word';
+
+            // Wait a moment, then load the next word
+            setTimeout(loadWord, 1200);
         }
 
         // --- 5. Restart Logic ---
-        
+
         restartBtn.addEventListener('click', () => {
             practiceArea.style.display = 'none';
             endScreen.style.display = 'none';
             setupArea.style.display = 'block';
-            
+
             // Re-run the load logic to show the correct status
             loadFromStorage();
         });
@@ -448,4 +485,5 @@
 
     </script>
 </body>
+
 </html>
